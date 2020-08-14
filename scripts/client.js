@@ -19,7 +19,7 @@ socket.on('connect_error', () => {
 
 
 socket.on('message', (data) => {
-    console.log("%s: %s", data.sender, data.message);
+    chattingMessageGet(data.sender, data.message);
 });
 
 socket.on('nickName', (data) => {

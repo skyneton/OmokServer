@@ -29,7 +29,7 @@
                 <input type="button" value="이름 변경" onclick="nameChangeBtnClick()">
 
                 <div class="nameChangeBox">
-                    <input class="nameChangeInputBox" type="text" placeholder="원하는 이름을 입력하세요.">
+                    <input class="nameChangeInputBox" type="text" placeholder="원하는 이름을 입력하세요." onkeyup="nameChangeEnterCheck()">
                     <input class="nameChangeStartBtn" type="button" onclick="nameChangeStartClick()" value="확인">
                     <input class="nameChangeStartBtn" type="button" onclick="nameChangeCancelClick()" value="취소">
                 </div>
@@ -63,10 +63,11 @@
 
         <footer>
             <div class="chattingList">
+                <h5 class="chattingInfo">채팅</h5>
                 <div class="chattingBox"></div>
                 <div class="chatInput">
-                    <input type="text" placeholder="채팅을 입력하세요." id="myChat">
-                    <button id="sendChat">전송</button>
+                    <input type="text" placeholder="채팅을 입력하세요." id="myChat" onkeyup="chatSendKeyClick()">
+                    <button id="sendChat" onclick="chatSendClick()">전송</button>
                 </div>
             </div>
         </footer>
@@ -123,6 +124,7 @@
             else {
                 nameChangePacketSend(newName);
                 document.getElementsByClassName("nameChangeBox")[0].style.display = "none";
+                document.getElementsByClassName("nameChangeInputBox")[0].value = "";
             }
         }
 
@@ -149,6 +151,34 @@
                 document.getElementById("nav5").style.display = "inline-block";
                 
                 dataClear();
+            }
+        }
+
+        var chatSendClick = () => {
+            var chat = document.getElementById("myChat").value;
+            if(chat.length == 0)
+                alert("채팅 내용을 입력하세요.");
+            else {
+                chatPacketSend(chat);
+                document.getElementById("myChat").value = "";
+            }
+        }
+
+        var nameChangeEnterCheck = () => {
+            if(window.event.keyCode == 13) {
+                document.getElementsByClassName('nameChangeStartBtn')[0].click();
+            }
+        }
+
+        var chatSendKeyClick = () => {
+            if(window.event.keyCode == 13) {
+                var chat = document.getElementById("myChat").value;
+                if(chat.length == 0)
+                    alert("채팅 내용을 입력하세요.");
+                else {
+                    chatPacketSend(chat);
+                    document.getElementById("myChat").value = "";
+                }
             }
         }
 

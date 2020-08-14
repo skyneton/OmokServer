@@ -16,9 +16,9 @@ io.sockets.on("connection", (client) => {
     
     client.on('message', (data) => {
         if(roomName != null)
-            io.sockets.in(roomName).emit('message', {sender: playerName, message: data });
+            io.sockets.in(roomName).emit('message', {sender: playerName, message: splitTags(data) });
         else
-            io.sockets.emit('message', {sender: playerName, message: data });
+            io.sockets.emit('message', {sender: playerName, message: splitTags(data) });
     });
 
     client.on('createRoom', (data) => {
@@ -31,15 +31,8 @@ io.sockets.on("connection", (client) => {
         if(data.length < 2 | data.length > 12)
             alertMessage("이름은 2글자 이상 12글자 이하여야 합니다.");
         else {
-            data.replace(/&/gi, "&#38;");
-            data.replace(/#/gi, "&#35;");
-            data.replace(/&&#3538;/gi, "&#38;");
-            data.replace(/</gi, "&lt;");
-            data.replace(/>/, "&gt;");
-            // data.replace(/\(/gi, "&#40;");
-            // data.replace(/\)/gi, "&#41;");
-            data.replace(" ", "nbsp;");
-            data.replace("=", "&#61;");
+
+            data = splitTags(data);
 
             if(playerList.includes(data)) {
                 alertMessage("이미 존재하는 이름입니다.");
@@ -63,6 +56,22 @@ io.sockets.on("connection", (client) => {
 
     var alertMessage = (msg) => {
         client.emit('alertMessage', msg);
+    };
+    
+
+    var splitTags = (data) => {
+        data = data.toString();
+        data.replace(/&/gi, "&#38;");
+        data.replace(/#/gi, "&#35;");
+        data.replace(/&&#3538;/gi, "&#38;");
+        data.replace(/</gi, "&lt;");
+        data.replace(/>/, "&gt;");
+        // data.replace(/\(/gi, "&#40;");
+        // data.replace(/\)/gi, "&#41;");
+        data.replace(" ", "nbsp;");
+        data.replace("=", "&#61;");
+
+        return data;
     };
 });
 

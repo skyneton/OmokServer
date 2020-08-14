@@ -165,12 +165,55 @@ html::-webkit-scrollbar-thumb {
     background-color: rgb(248, 248, 248);
 }
 
-.chattingList::-webkit-scrollbar {
+.chat_sender {
+    display: inline-block;
+    font-weight: bold;
+    font-size: 12px;
+    text-align: center;
+    margin-right: 20px;
+    width: 180px;
+    overflow: hidden;
+}
+
+.chat_list_item {
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 5px;
+}
+
+.chat_message {
+    display: inline-block;
+    font-size: 12px;
+    width: 620px;
+    word-break: break-all;
+}
+
+.chat_time {
+    display: inline-block;
+    font-size: 12px;
+    color: rgb(168, 168, 168);
+    text-align: center;
+    width: 150px;
+    overflow: hidden;
+}
+
+.chattingInfo {
+    width: 935px;
+    padding: 5px;
+    padding-left: 10px;
+    height: 15px;
+    background-color: #dddddd;
+    border-radius: 10px;
+    align-items: center;
+    margin: 5px auto;
+}
+
+.chattingBox::-webkit-scrollbar {
     width: 8px;
     height: 8px;
 }
 
-.chattingList::-webkit-scrollbar-thumb {
+.chattingBox::-webkit-scrollbar-thumb {
     border-radius: 3px;
     background-color: rgba(24, 24, 24, 0.3);
 }
@@ -194,13 +237,16 @@ html::-webkit-scrollbar-thumb {
 }
 
 .chattingBox {
-    background-color: #ffffff;
-    height: 150px;
+    overflow-y: auto;
+    height: 210px;
+    margin-bottom: 15px;
 }
 
 .chatInput {
     display: flex;
+    width: 935px;
     align-items: center;
+    margin: auto;
 }
 
 .playerListItem {
@@ -262,9 +308,11 @@ header input:active {
     background-color: rgb(175, 255, 28);
 }
 #nav4 {
+    display: none;
     background-color: lime;
 }
 #nav5 {
+    display: none;
     background-color: tomato;
 }
 #singlePlay {
