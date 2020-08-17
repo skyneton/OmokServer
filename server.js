@@ -3,7 +3,7 @@ var guestId = 0;
 var playerList = new Array();
 var roomList = new Array();
 
-var io = require("socket.io").listen(port, () => { });
+var io = require("socket.io").listen( process.env.PORT || port, () => { });
 
 io.sockets.on("connection", (client) => {
     client.ready = false;
