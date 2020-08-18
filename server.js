@@ -340,7 +340,7 @@ var clearBoard = (roomName) => {
             roomList[roomName].gameBoard[y][x] = 0;
         }
     }
-});
+};
 
 var createBoard = () => {
     var board = new Array();
