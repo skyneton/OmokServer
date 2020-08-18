@@ -83,6 +83,7 @@ io.sockets.on("connection", (client) => {
 
                             roomList[client.roomName].NowTurn = 0;
                             roomList[client.roomName].DuringGame = false;
+                            clearBoard(client.roomName);
                             break;
 
                         case 2:
@@ -91,6 +92,7 @@ io.sockets.on("connection", (client) => {
 
                             roomList[client.roomName].NowTurn = 0;
                             roomList[client.roomName].DuringGame = false;
+                            clearBoard(client.roomName);
                             break;
 
                         default:
@@ -184,6 +186,7 @@ io.sockets.on("connection", (client) => {
 
                 roomList[client.roomName].NowTurn = 0;
                 roomList[client.roomName].DuringGame = false;
+                clearBoard(client.roomName);
             }
             client.join("connection_main_players_room");
 
@@ -285,6 +288,7 @@ io.sockets.on("connection", (client) => {
                 alertMessage("플레이어가 중도 퇴장하여 게임이 종료되었습니다.", io.sockets.in(client.roomName));
                 roomList[client.roomName].NowTurn = 0;
                 roomList[client.roomName].DuringGame = false;
+                clearBoard(client.roomName);
             }
             io.sockets.emit('leaveRoomPlayer', client.roomName);
             io.sockets.in(client.roomName).emit('leavePlayer', client.playerName);
@@ -328,6 +332,14 @@ io.sockets.on("connection", (client) => {
 
         return data;
     };
+});
+
+var clearBoard = (roomName) => {
+    for(var y = 0; y < 15; y++) {
+        for(var x = 0; x < 15; x++) {
+            roomList[roomName].gameBoard[y][x] = 0;
+        }
+    }
 });
 
 var createBoard = () => {
@@ -466,10 +478,6 @@ var gameClearCheck = ((board, x, y) => {
     
     return 2;
 });
-
-setInterval(function() {
-    io.emit('wakeUP');
-}, 600000);
 
 //https://velog.io/@ju_h2/Node.js-socket.io로-실시간-채팅-구현하기
 //https://m.blog.naver.com/tkddlf4209/221833759786
