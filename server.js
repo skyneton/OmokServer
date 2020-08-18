@@ -209,6 +209,7 @@ io.sockets.on("connection", (client) => {
     });
 
     client.on('joinRoom', (packet) => {
+        if(roomList[packet.roomName] == null) return;
         if(roomList[packet.roomName].password != "" && roomList[packet.roomName].password != packet.password && client.roomName != packet.roomName) {
             client.emit('roomPasswdPls', packet.roomName);
         }else if(client.roomName != packet.roomName) {
