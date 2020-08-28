@@ -30,6 +30,12 @@ io.sockets.on("connection", (client) => {
     client.on('clientStatusChange', () => {
         if(client.roomName != null) {
             if(roomList[client.roomName].admin == client.playerName) {
+                
+                if(roomList[client.roomName].clients.length < 2) {
+                    alertMessage("인원이 부족합니다.");
+                    return;
+                }
+                
                 var readyCheck = roomList[client.roomName].clients.some(x => {
                     if(!x.ready) {
                         alertMessage("준비되지 않은 플레이어가 있습니다.");
