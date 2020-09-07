@@ -8,6 +8,8 @@ var io = require("socket.io").listen( process.env.PORT || port, () => { });
 io.sockets.on("connection", (client) => {
     client.ready = false;
     client.roomName = null;
+    client.speactor = false;
+
     client.playerName = "손님"+(++guestId);
     client.emit('nickName', client.playerName);
     client.join("connection_main_players_room");
@@ -48,6 +50,8 @@ io.sockets.on("connection", (client) => {
                     io.sockets.in(client.roomName).emit('gameStart');
                     roomList[client.roomName].DuringGame = true;
                     roomList[client.roomName].clients[roomList[client.roomName].NowTurn].emit("myTurnNow");
+
+                    roomList[client.roomName].speactors.forEach(x => { x.emit('WhoTurnNow', roomList[client.roomName].clients[roomList[client.roomName].NowTurn].playerName); });
                 }
 
             }else {
@@ -66,6 +70,7 @@ io.sockets.on("connection", (client) => {
                 if(!roomList[client.roomName].gameBoard[data.y][data.x]) {
                     roomList[client.roomName].gameBoard[data.y][data.x] = roomList[client.roomName].NowTurn+1;
                     io.sockets.in(client.roomName).emit('boardClick', { 'y': data.y, 'x': data.x, 'turn': roomList[client.roomName].NowTurn });
+                    roomList[client.roomName].speactors.forEach(x => { x.emit('WhoTurnNow', roomList[client.roomName].clients[roomList[client.roomName].NowTurn].playerName); });
 
 
                     switch(gameClearCheck(roomList[client.roomName].gameBoard, data.x, data.y)) {
@@ -86,6 +91,8 @@ io.sockets.on("connection", (client) => {
                                     io.sockets.in(client.roomName).emit('readyStatusChange', {'playerName': x.playerName, 'status': x.ready });
                                 }
                             });
+
+                            roomList[client.roomName].speactors.forEach(x => { alertMessage(client.playerName + " 님이 승리하였습니다.", x); });
 
                             roomList[client.roomName].NowTurn = 0;
                             roomList[client.roomName].DuringGame = false;
@@ -128,12 +135,17 @@ io.sockets.on("connection", (client) => {
             if(roomList[client.roomName].admin == client.playerName && (roomList[data] == null || data == client.roomName)) {
                 io.sockets.emit('changeRoom', { 'oldName': client.roomName, 'newName': data, 'password' : (password != "") });
                 if(roomList[data] == null) {
-                    roomList[data] = { 'DuringGame': false, 'NowTurn': 0, 'gameBoard': roomList[client.roomName].gameBoard, 'roomName': data, 'admin': client.playerName, 'password': password, 'len': roomList[client.roomName].len, 'clients': roomList[client.roomName].clients };
+                    roomList[data] = { 'DuringGame': false, 'NowTurn': 0, 'gameBoard': roomList[client.roomName].gameBoard, 'roomName': data, 'admin': client.playerName, 'password': password, 'len': roomList[client.roomName].len, 'clients': roomList[client.roomName].clients, 'speactors': roomList[client.roomName].speactors };
                     delete roomList[client.roomName];
                     
                     roomList[data].clients.forEach(x => { x.join(data); });
                     roomList[data].clients.forEach(x => { x.leave(client.roomName); });
                     roomList[data].clients.forEach(x => { x.roomName = data; });
+                    
+                    roomList[data].speactors.forEach(x => { x.join(data); });
+                    roomList[data].speactors.forEach(x => { x.leave(client.roomName); });
+                    roomList[data].speactors.forEach(x => { x.roomName = data; });
+
                     io.sockets.in(client.roomName).emit("roomDataChanged", client.roomName );
                 }else {
                     roomList[data].password = password;
@@ -149,19 +161,37 @@ io.sockets.on("connection", (client) => {
                     client.emit("leaveRoom");
                     io.sockets.emit('leaveRoomPlayer', client.roomName);
                     roomList[client.roomName].len--;
-                    roomList[client.roomName].clients.splice(roomList[client.roomName].clients.indexOf(client), 1);
+                    if(client.speactor) {
+                        client.speactor = false;
+                        roomList[client.roomName].speactors.splice(roomList[client.roomName].speactors.indexOf(client), 1);
+                    }else
+                        roomList[client.roomName].clients.splice(roomList[client.roomName].clients.indexOf(client), 1);
 
                     if(roomList[client.roomName].len <= 0) {
                         delete roomList[client.roomName];
                         io.sockets.emit('deleteRoom', client.roomName);
+                    }else {
+                        if(roomList[client.roomName].admin == client.playerName) {
+                            var cl = client;
+                            if(roomList[client.roomName].clients.length > 0)
+                                cl = roomList[client.roomName].clients[0];
+                            else
+                                cl = roomList[client.roomName].speactors[0];
+            
+                            cl.emit("roomAdmin", {"roomName": client.roomName, "password": roomList[client.roomName].password});
+                            cl.ready = true;
+                            roomList[client.roomName].admin = cl.playerName;
+                        }
                     }
                 }
             }
         }
+
+        client.speactor = false;
         
         if(roomList[data] == null) {
             io.sockets.emit('createRoom', { 'roomName': data, 'admin': client.playerName, 'password': (password != "") });
-            roomList[data] = { 'DuringGame': false, 'NowTurn': 0, 'gameBoard': createBoard(), 'roomName': data, 'admin': client.playerName, 'password': password, 'len': 1, 'clients': new Array() };
+            roomList[data] = { 'DuringGame': false, 'NowTurn': 0, 'gameBoard': createBoard(), 'roomName': data, 'admin': client.playerName, 'password': password, 'len': 1, 'clients': new Array(), 'speactors': new Array() };
             
             client.roomName = data;
             
@@ -183,31 +213,48 @@ io.sockets.on("connection", (client) => {
     client.on('leaveRoom', () => {
         if(client.roomName != null) {
             if(roomList[client.roomName].DuringGame) {
-                io.sockets.in(client.roomName).emit("gameEnd");
-                
-                roomList[client.roomName].clients.forEach(x => {
-                    if(x.playerName != client.playerName)
-                        alertMessage("플레이어가 중도 퇴장하여 게임이 종료되었습니다.", x);
-                });
+                if(!client.speactor) {
+                    io.sockets.in(client.roomName).emit("gameEnd");
+                    
+                    roomList[client.roomName].clients.forEach(x => {
+                        if(x.playerName != client.playerName)
+                            alertMessage("플레이어가 중도 퇴장하여 게임이 종료되었습니다.", x);
+                    });
+                    roomList[client.roomName].speactors.forEach(x => {
+                        if(x.playerName != client.playerName)
+                            alertMessage("플레이어가 중도 퇴장하여 게임이 종료되었습니다.", x);
+                    });
 
-                roomList[client.roomName].NowTurn = 0;
-                roomList[client.roomName].DuringGame = false;
-                clearBoard(client.roomName);
+                    roomList[client.roomName].NowTurn = 0;
+                    roomList[client.roomName].DuringGame = false;
+                    clearBoard(client.roomName);
+                }else
+                    client.emit("gameEnd");
             }
+
             client.join("connection_main_players_room");
 
             io.sockets.in(client.roomName).emit('leavePlayer', client.playerName);
             client.leave(client.roomName);
             client.emit("leaveRoom");
             io.sockets.emit('leaveRoomPlayer', client.roomName);
-            roomList[client.roomName].clients.splice(roomList[client.roomName].clients.indexOf(client), 1);
+            if(client.speactor) {
+                client.speactor = false;
+                roomList[client.roomName].speactors.splice(roomList[client.roomName].speactors.indexOf(client), 1);
+            }else
+                roomList[client.roomName].clients.splice(roomList[client.roomName].clients.indexOf(client), 1);
 
             roomList[client.roomName].len--;
             if(roomList[client.roomName].len <= 0) {
                 delete roomList[client.roomName];
                 io.sockets.emit('deleteRoom', client.roomName);
             }else if(roomList[client.roomName].admin == client.playerName) {
-                var cl = roomList[client.roomName].clients[0];
+                var cl = client;
+                if(roomList[client.roomName].clients.length > 0)
+                    cl = roomList[client.roomName].clients[0];
+                else
+                    cl = roomList[client.roomName].speactors[0];
+
                 cl.emit("roomAdmin", {"roomName": client.roomName, "password": roomList[client.roomName].password});
                 cl.ready = true;
                 roomList[client.roomName].admin = cl.playerName;
@@ -222,10 +269,6 @@ io.sockets.on("connection", (client) => {
         if(roomList[packet.roomName].password != "" && roomList[packet.roomName].password != packet.password && client.roomName != packet.roomName) {
             client.emit('roomPasswdPls', packet.roomName);
         }else if(client.roomName != packet.roomName) {
-            if(roomList[packet.roomName].len >= 2) {
-                alertMessage("해당 방의 인원이 가득 찼습니다.");
-                return;
-            }
             client.leave("connection_main_players_room");
 
             if(client.roomName != null) {
@@ -233,14 +276,23 @@ io.sockets.on("connection", (client) => {
                 client.leave(client.roomName);
                 client.emit("leaveRoom");
                 io.sockets.emit('leaveRoomPlayer', client.roomName);
-                roomList[client.roomName].clients.splice(roomList[client.roomName].clients.indexOf(client), 1);
+                if(client.speactor) {
+                    client.speactor = false;
+                    roomList[client.roomName].speactors.splice(roomList[client.roomName].speactors.indexOf(client), 1);
+                }else
+                    roomList[client.roomName].clients.splice(roomList[client.roomName].clients.indexOf(client), 1);
 
                 roomList[client.roomName].len--;
                 if(roomList[client.roomName].len <= 0) {
                     delete roomList[client.roomName];
                     io.sockets.emit('deleteRoom', client.roomName);
                 }else if(roomList[client.roomName].admin == client.playerName) {
-                    var cl = io.sockets.in(client.roomName).sockets[0];
+                    var cl = client;
+                    if(roomList[client.roomName].clients.length > 0)
+                        cl = roomList[client.roomName].clients[0];
+                    else
+                        cl = roomList[client.roomName].speactors[0];
+    
                     cl.emit("roomAdmin", {"roomName": client.roomName, "password": roomList[client.roomName].password});
                     cl.ready = true;
                     roomList[client.roomName].admin = cl.playerName;
@@ -254,10 +306,32 @@ io.sockets.on("connection", (client) => {
             client.ready = false;
             client.emit('myReadyStatusChange', client.ready);
             roomList[client.roomName].clients.forEach(x => { client.emit("roomPlayerList", { 'playerName': x.playerName, 'ready': x.ready }); });
+            roomList[client.roomName].speactors.forEach(x => {
+                client.emit("roomPlayerList", { 'playerName': x.playerName, 'ready': x.ready });
+                client.emit("speactorModeChange", { 'playerName': x.playerName, 'speactor': x.speactor, 'ready': x.ready });
+            });
             roomList[client.roomName].len++;
             io.sockets.emit('joinRoomPlayer', client.roomName);
             io.sockets.in(client.roomName).emit("joinPlayer", client.playerName);
-            roomList[client.roomName].clients.push(client);
+            if(roomList[packet.roomName].clients.length >= 2 || roomList[packet.roomName].DuringGame) {
+                client.speactor = true;
+                roomList[client.roomName].speactors.push(client);
+                io.sockets.emit("speactorModeChange", { 'playerName': client.playerName, 'speactor': client.speactor, 'ready': client.ready });
+                client.emit("speactorChangeMe", { 'speactor': client.speactor, 'admin': (client.playerName == roomList[client.roomName].admin) });
+
+                if(roomList[packet.roomName].DuringGame) {
+                    
+                    client.emit('gameStart');
+
+                    for(var y = 0; y < 15; y++) {
+                        for(var x = 0; x < 15; x++) {
+                            if(roomList[client.roomName].gameBoard[y][x] != 0)
+                                client.emit('boardClick', { 'y': y, 'x': x, 'turn': roomList[client.roomName].gameBoard[y][x]-1, 'noSound': true });
+                        }
+                    }
+                }
+            }else
+                roomList[client.roomName].clients.push(client);
         }
     });
 
@@ -285,11 +359,36 @@ io.sockets.on("connection", (client) => {
         }
     });
 
+    client.on('speactorModeChange', () => {
+        if(client.roomName != null) {
+            if(roomList[client.roomName].DuringGame) {
+                alertMessage("게임중에는 관전모드 변경이 불가능합니다.");
+                return;
+            }
+            if(client.speactor) {
+                if(roomList[client.roomName].clients.length < 2) {
+                    roomList[client.roomName].speactors.splice(roomList[client.roomName].speactors.indexOf(client), 1);
+                    roomList[client.roomName].clients.push(client);
+                    client.speactor = false;
+                    io.sockets.emit("speactorModeChange", { 'playerName': client.playerName, 'speactor': client.speactor, 'ready': client.ready });
+                    client.emit("speactorChangeMe", { 'speactor': client.speactor, 'admin': (client.playerName == roomList[client.roomName].admin) });
+                }else
+                    alertMessage("플레이 인원이 가득 찻습니다.");
+            }else {
+                roomList[client.roomName].clients.splice(roomList[client.roomName].clients.indexOf(client), 1);
+                roomList[client.roomName].speactors.push(client);
+                client.speactor = true;
+                io.sockets.emit("speactorModeChange", { 'playerName': client.playerName, 'speactor': client.speactor, 'ready': client.ready });
+                client.emit("speactorChangeMe", { 'speactor': client.speactor, 'admin': (client.playerName == roomList[client.roomName].admin) });
+            }
+        }
+    });
+
     client.on('disconnect', () => {
         //접속해제
         //방 존재시 끉기 및 quit 실행
         if(client.roomName != null) {
-            if(roomList[client.roomName].DuringGame) {
+            if(roomList[client.roomName].DuringGame && !client.speactor) {
                 io.sockets.in(client.roomName).emit("gameEnd");
                 alertMessage("플레이어가 중도 퇴장하여 게임이 종료되었습니다.", io.sockets.in(client.roomName));
                 roomList[client.roomName].NowTurn = 0;
@@ -299,14 +398,23 @@ io.sockets.on("connection", (client) => {
             io.sockets.emit('leaveRoomPlayer', client.roomName);
             io.sockets.in(client.roomName).emit('leavePlayer', client.playerName);
             client.leave(client.roomName);
-            roomList[client.roomName].clients.splice(roomList[client.roomName].clients.indexOf(client), 1);
+            if(client.speactor) {
+                roomList[client.roomName].speactors.splice(roomList[client.roomName].speactors.indexOf(client), 1);
+
+            }else
+                roomList[client.roomName].clients.splice(roomList[client.roomName].clients.indexOf(client), 1);
 
             roomList[client.roomName].len--;
             if(roomList[client.roomName].len <= 0) {
                 delete roomList[client.roomName];
                 io.sockets.emit('deleteRoom', client.roomName);
             }else if(roomList[client.roomName].admin == client.playerName) {
-                var cl = roomList[client.roomName].clients[0];
+                var cl = client;
+                if(roomList[client.roomName].clients.length > 0)
+                    cl = roomList[client.roomName].clients[0];
+                else
+                    cl = roomList[client.roomName].speactors[0];
+
                 cl.emit("roomAdmin", {"roomName": client.roomName, "password": roomList[client.roomName].password});
                 cl.ready = true;
                 roomList[client.roomName].admin = cl.playerName;
