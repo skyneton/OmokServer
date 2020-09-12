@@ -3,7 +3,7 @@ var guestId = 0;
 var playerList = new Array();
 var roomList = new Array();
 
-
+/*
 const readline = require('readline').createInterface({
     input: process.stdin,
     output: process.stdout
@@ -17,7 +17,7 @@ readline.on("line", (line) => {
 }).on("close", () => {
     process.exit();
 });
-
+*/
 
 var io = require("socket.io").listen( process.env.PORT || port, () => { });
 
