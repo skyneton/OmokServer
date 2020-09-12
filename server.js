@@ -3,6 +3,22 @@ var guestId = 0;
 var playerList = new Array();
 var roomList = new Array();
 
+
+const readline = require('readline').createInterface({
+    input: process.stdin,
+    output: process.stdout
+});
+
+readline.on("line", (line) => {
+    if(line.startsWith('.b ')) {
+        var l = line.substr(3);
+        io.sockets.emit('message', {'sender': 'SYSTEM', 'message': l });
+    }
+}).on("close", () => {
+    process.exit();
+});
+
+
 var io = require("socket.io").listen( process.env.PORT || port, () => { });
 
 io.sockets.on("connection", (client) => {
