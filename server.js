@@ -449,16 +449,18 @@ io.sockets.on("connection", (client) => {
     
 
     var splitTags = (data) => {
-        data = data.toString();
-        data.replace(/&/gi, "&#38;");
-        data.replace(/#/gi, "&#35;");
-        data.replace(/&&#3538;/gi, "&#38;");
-        data.replace(/</gi, "&lt;");
-        data.replace(/>/, "&gt;");
-        // data.replace(/\(/gi, "&#40;");
-        // data.replace(/\)/gi, "&#41;");
-        data.replace(" ", "nbsp;");
-        data.replace("=", "&#61;");
+        return data.toString()
+            .replace(/&/gi, "&#38;")
+            .replace(/#/gi, "&#35;")
+            .replace(/&&#3538;/gi, "&#38;")
+            .replace(/</gi, "&lt;")
+            .replace(/>/, "&gt;")
+            .replace(/\(/gi, "&#40;")
+            .replace(/\)/gi, "&#41;")
+            .replace(" ", "nbsp;")
+            .replace("=", "&#61;")
+            .replace(/'/gi, "&#39;")
+            .replace(/"/gi, "&quot;");
 
         return data;
     };
