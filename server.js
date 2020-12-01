@@ -457,7 +457,7 @@ io.sockets.on("connection", (client) => {
             .replace(/>/, "&gt;")
             .replace(/\(/gi, "&#40;")
             .replace(/\)/gi, "&#41;")
-            .replace(" ", "nbsp;")
+            .replace(" ", "&nbsp;")
             .replace("=", "&#61;")
             .replace(/'/gi, "&#39;")
             .replace(/"/gi, "&quot;");
