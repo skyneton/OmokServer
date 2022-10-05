@@ -3,6 +3,12 @@ var guestId = 0;
 var playerList = new Array();
 var roomList = new Array();
 
+const log = msg => { 
+   const logDate = new Date(); 
+   const logD = "[" + logDate.getFullYear().toString().substring(2) + "/" + (logDate.getMonth() + 1).toString().padStart(2,'0') + " " + logDate.getHours().toString().padStart(2,'0') + ":" + logDate.getMinutes().toString().padStart(2,'0') + ":" + logDate.getSeconds().toString().padStart(2,'0') + "]"; 
+   console.log(logD + " " + msg);
+};
+
 /*
 const readline = require('readline').createInterface({
     input: process.stdin,
@@ -39,6 +45,7 @@ io.sockets.on("connection", (client) => {
     
     
     client.on('message', (data) => {
+        log(`Chat::${(client.roomName != null ? `[${client.roomName}]` : "Main::")} ${data}`);
         if(client.roomName != null)
             io.sockets.in(client.roomName).emit('message', {'sender': client.playerName, 'message': splitTags(data) });
         else
