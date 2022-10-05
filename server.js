@@ -45,7 +45,7 @@ io.sockets.on("connection", (client) => {
     
     
     client.on('message', (data) => {
-        log(`Chat::${(client.roomName != null ? `[${client.roomName}]` : "Main::")} ${data}`);
+        log(`Chat::${(client.roomName != null ? `[${client.roomName}]` : "Main::")} ${client.playerName}:: ${data}`);
         if(client.roomName != null)
             io.sockets.in(client.roomName).emit('message', {'sender': client.playerName, 'message': splitTags(data) });
         else
